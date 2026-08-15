@@ -38,25 +38,41 @@ jobs:
         with:
           terraform_version: 1.9.0
 
-      - name: Prepare Azure Credentials
-        id: azure_creds
+      - name: Verify Secret Availability
         run: |
+          echo "=== Secret Status Check ==="
+          FOUND=1
           if [ -n "$AZURE_CREDENTIALS" ]; then
-            echo "creds=$AZURE_CREDENTIALS" >> $GITHUB_OUTPUT
+            echo "✓ AZURE_CREDENTIALS is set"
           else
-            CREDS_JSON=$(jq -n -c \
-              --arg cid "$ARM_CLIENT_ID" \
-              --arg cs "$ARM_CLIENT_SECRET" \
-              --arg sub "$ARM_SUBSCRIPTION_ID" \
-              --arg tid "$ARM_TENANT_ID" \
-              '{clientId: $cid, clientSecret: $cs, subscriptionId: $sub, tenantId: $tid}')
-            echo "creds=$CREDS_JSON" >> $GITHUB_OUTPUT
+            echo "ℹ AZURE_CREDENTIALS is not set (checking individual secrets...)"
+          fi
+
+          if [ -n "$ARM_CLIENT_ID" ]; then echo "✓ AZURE_CLIENT_ID is set"; else echo "❌ AZURE_CLIENT_ID is MISSING or EMPTY in GitHub Secrets"; FOUND=0; fi
+          if [ -n "$ARM_CLIENT_SECRET" ]; then echo "✓ AZURE_CLIENT_SECRET is set"; else echo "❌ AZURE_CLIENT_SECRET is MISSING or EMPTY in GitHub Secrets"; FOUND=0; fi
+          if [ -n "$ARM_SUBSCRIPTION_ID" ]; then echo "✓ AZURE_SUBSCRIPTION_ID is set"; else echo "❌ AZURE_SUBSCRIPTION_ID is MISSING or EMPTY in GitHub Secrets"; FOUND=0; fi
+          if [ -n "$ARM_TENANT_ID" ]; then echo "✓ AZURE_TENANT_ID is set"; else echo "❌ AZURE_TENANT_ID is MISSING or EMPTY in GitHub Secrets"; FOUND=0; fi
+
+          if [ -z "$AZURE_CREDENTIALS" ] && [ $FOUND -eq 0 ]; then
+            echo "CRITICAL: One or more required secrets are missing or empty in GitHub Repository Settings."
+            echo "Please navigate to Settings -> Secrets and variables -> Actions in your GitHub repository and add:"
+            echo "  - AZURE_CLIENT_ID"
+            echo "  - AZURE_CLIENT_SECRET"
+            echo "  - AZURE_SUBSCRIPTION_ID"
+            echo "  - AZURE_TENANT_ID"
+            exit 1
           fi
 
       - name: Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ steps.azure_creds.outputs.creds }}
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
       - name: Terraform Init
         run: terraform init
