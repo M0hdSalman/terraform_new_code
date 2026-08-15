@@ -74,6 +74,14 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
+      - name: Ensure Backend Storage Container Exists
+        run: |
+          echo "Ensuring backend blob container 'state' exists in account 'statefilekliyerg'..."
+          az storage container create \
+            --name "state" \
+            --account-name "statefilekliyerg" \
+            --auth-mode login || true
+
       - name: Terraform Init
         run: terraform init
 
