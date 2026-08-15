@@ -1,8 +1,8 @@
 output "pip_id" {
-    value = {
-        for key, value in azurerm_public_ip.pip:
-        key => value.id
-    } 
+  value = {
+    for key, value in azurerm_public_ip.pip :
+    key => value.id
+  }
 }
 
 output "public_ip_addresses" {

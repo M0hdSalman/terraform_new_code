@@ -1,5 +1,5 @@
 resource "azurerm_network_security_group" "example" {
-  for_each = var.nsg
+  for_each            = var.nsg
   name                = each.value.nsg_name
   location            = each.value.location
   resource_group_name = var.rg_names[each.value.resource_group_name]
@@ -28,9 +28,9 @@ resource "azurerm_network_security_group" "example" {
     destination_port_range     = "80"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
- }
+  }
 
- # ReactApp Rule
+  # ReactApp Rule
   security_rule {
     name                       = "Allow-App"
     priority                   = 140
@@ -41,5 +41,5 @@ resource "azurerm_network_security_group" "example" {
     destination_port_range     = "3000"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
- }
+  }
 }

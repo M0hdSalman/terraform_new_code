@@ -8,5 +8,5 @@ variable "pips" {
 }
 
 variable "rg_names" {
-    type = map(string) 
+  type = map(string)
 }
