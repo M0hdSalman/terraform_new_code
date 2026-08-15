@@ -38,10 +38,25 @@ jobs:
         with:
           terraform_version: 1.9.0
 
+      - name: Prepare Azure Credentials
+        id: azure_creds
+        run: |
+          if [ -n "$AZURE_CREDENTIALS" ]; then
+            echo "creds=$AZURE_CREDENTIALS" >> $GITHUB_OUTPUT
+          else
+            CREDS_JSON=$(jq -n -c \
+              --arg cid "$ARM_CLIENT_ID" \
+              --arg cs "$ARM_CLIENT_SECRET" \
+              --arg sub "$ARM_SUBSCRIPTION_ID" \
+              --arg tid "$ARM_TENANT_ID" \
+              '{clientId: $cid, clientSecret: $cs, subscriptionId: $sub, tenantId: $tid}')
+            echo "creds=$CREDS_JSON" >> $GITHUB_OUTPUT
+          fi
+
       - name: Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS || format('{"clientId":"{0}","clientSecret":"{1}","subscriptionId":"{2}","tenantId":"{3}"}', secrets.AZURE_CLIENT_ID, secrets.AZURE_CLIENT_SECRET, secrets.AZURE_SUBSCRIPTION_ID, secrets.AZURE_TENANT_ID) }}
+          creds: ${{ steps.azure_creds.outputs.creds }}
 
       - name: Terraform Init
         run: terraform init
