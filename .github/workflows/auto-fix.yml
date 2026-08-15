@@ -1,0 +1,41 @@
+name: 'Auto-Fix Pipeline Failures'
+
+on:
+  workflow_run:
+    workflows: ['Terraform Azure Deployment']
+    types:
+      - completed
+
+jobs:
+  auto-remediate:
+    name: 'Auto-Remediation Bot'
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Run Auto Formatting & Lint Fixes
+        run: |
+          echo "Pipeline failure detected in run #${{ github.event.workflow_run.run_number }}. Executing automated fixes..."
+          terraform fmt -recursive .
+
+      - name: Commit and Push Auto-Fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ -n $(git status --porcelain) ]]; then
+            git add .
+            git commit -m "auto-fix: automated resolution of pipeline formatting & configuration issues"
+            git push origin main
+          else
+            echo "No file changes detected."
+          fi
